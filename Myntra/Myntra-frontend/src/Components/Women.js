@@ -1,0 +1,144 @@
+import axios from "axios";
+import React, { useContext, useEffect, useState } from "react";
+import Header from "./Header";
+import { Button, Card } from "react-bootstrap";
+import Footer from "./Footer";
+import { FaHeart, FaRegHeart } from "react-icons/fa";
+import { message } from "antd";
+import MyContext from "./Categories/MyContext";
+
+const Women = () => {
+  const id = localStorage.getItem("id");
+  const [product, setProduct] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+  const [wishlistId, setWishlistId] = useState(0);
+  const { bagId } = useContext(MyContext);
+  const [reload, setReload] = useState(true);
+  useEffect(() => {
+    data();
+  }, []);
+  const data = () => {
+    axios
+      .get("http://localhost:8080/products/productsByName/women")
+      .then((res) => {
+        if (res.status == 200) {
+          // console.log(res.data)
+          setReload(!reload);
+          setProduct(res.data);
+        }
+      })
+      .catch();
+  };
+  useEffect(() => {
+    axios
+      .get(`http://localhost:8080/wishlist/getWishlist/${id}`)
+      .then((response) => {
+        if (response.status === 200) {
+          setWishlist(response.data);
+
+          console.log(response.data);
+        }
+      })
+
+      .catch((err) => {
+        alert("error" + err);
+      });
+  }, [reload]);
+
+  const add = (productId) => {
+    axios
+      .post(`http://localhost:8080/wishlist/addToWishlist/${productId}/${id}`)
+      .then((res) => {
+        if (res.status == 200) {
+          message.success("Product Added to Wishlist");
+          setReload(!reload);
+        }
+      })
+
+      .catch((error) => {});
+  };
+  const remove = (productId) => {
+    axios
+      .delete(`http://localhost:8080/wishlist/deleteItem/${productId}/${id}`)
+
+      .then((res) => {
+        if (res.status === 200) {
+          message.success("Removed From wishlist.");
+          setReload(!reload);
+        }
+      })
+      .catch((err) => {});
+  };
+  const addToCart = (proId) => {
+    axios
+      .post(`http://localhost:8080/bag/addToBag/${bagId}/${proId}/1`)
+      .then((res) => {
+        if (res.status === 200) {
+          message.success("Added to Bag");
+        }
+      });
+  };
+
+  return (
+    <div>
+      <Header />
+      <div className="mt-2 mb-2 row row-cols">
+        {product.map((item, index) => {
+          return (
+            <Card
+              style={{ width: "18rem", marginLeft: "2%", padding: "0%" }}
+              className="mb-3"
+              key={index}
+            >
+              <Card.Img
+                variant="top"
+                src={item.url}
+                height={"250rem"}
+              ></Card.Img>
+
+              <Card.Body>
+                <Card.Title>{item.brandName}</Card.Title>
+                <Card.Text>
+                  <div>{item.productName} </div>
+                  <div>
+                    ₹{item.price}&nbsp;&nbsp;{" "}
+                    <strike>₹{item.actualPrice}</strike>&nbsp;&nbsp;{" "}
+                    <span style={{ color: "red" }}>({item.offer})</span>
+                  </div>
+                  {wishlist.some((i) => i.product.pId === item.pId) ? (
+                    <Button
+                      variant="info"
+                      size="sm"
+                      onClick={() => {
+                        remove(item.pId);
+                      }}
+                    >
+                      <FaHeart size={18} color="red" /> Wishlisted
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="info"
+                      size="sm"
+                      onClick={() => {
+                        add(item.pId);
+                      }}
+                    >
+                      <FaRegHeart size={18} /> Add to wishlist
+                    </Button>
+                  )}
+                  &nbsp;&nbsp;
+                  <Button variant="info" onClick={() => addToCart(item.pId)}>
+                    Add To Bag
+                  </Button>
+                </Card.Text>
+              </Card.Body>
+            </Card>
+          );
+        })}
+      </div>
+      <Footer />
+    </div>
+  );
+};
+
+export default Women;
